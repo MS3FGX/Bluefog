@@ -88,6 +88,7 @@ void *thread_spoof(void *threadarg)
 	// Local use variables
 	int bt_socket;
 	unsigned long i;
+	int verify_mac = 1;
 		
 	// Pull data out of struct
 	struct thread_data *local_data;
@@ -99,6 +100,13 @@ void *thread_spoof(void *threadarg)
 	verbose = local_data->verbose;
 	delay = local_data->delay;
 	
+	// MAC struct
+	bdaddr_t bdaddr;
+	bacpy(&bdaddr, BDADDR_ANY);
+	struct hci_dev_info di;
+	char addr_real[19] = {0};
+	char addr_buff[19] = {0};	
+	
 	// Init device	
 	if (verbose)
 		printf("Initalizing hci%i on thread %i.\n", device, thread_id);
@@ -109,6 +117,21 @@ void *thread_spoof(void *threadarg)
 		printf("Failed to initalize hci%i on thread %i!\n", device, thread_id);
 		exit(1); // TODO: Better shutdown
 	}
+		
+	// Get MAC for reference
+	if (!bacmp(&di.bdaddr, BDADDR_ANY))
+	{
+		if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
+		{
+			fprintf(stderr, "Can't read address for hci%d: %s (%d)\n", device, strerror(errno), errno);
+			hci_close_dev(bt_socket);
+		}
+	}
+	else
+		bacpy(&bdaddr, &di.bdaddr);	
+
+	// Real MAC stored to addr_real
+	ba2str(&bdaddr, addr_real);
 	
 	for (i = 0; i < iterations; i++)
 	{		
@@ -121,7 +144,8 @@ void *thread_spoof(void *threadarg)
 		if (verbose)
 			printf("hci%d renamed to '%s'\n", device, random_name());
 			
-		if (change_addr == 1)
+		// Attempt to change address
+		if (change_addr)
 		{
 			// Assign random MAC
 			cmd_bdaddr(device, random_addr());
@@ -130,9 +154,37 @@ void *thread_spoof(void *threadarg)
 					printf("hci%d addr changed to to '%s'\n", device, random_addr());	
 		}
 					
-		//Wait
+		// Wait
 		if (i != (iterations - 1))
 			sleep(delay);
+			
+		// Verify MAC actually changed
+		if (verify_mac)
+		{	
+			if (!bacmp(&di.bdaddr, BDADDR_ANY))
+			{
+				if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
+				{
+					fprintf(stderr, "Can't read address for hci%d: %s (%d)\n", device, strerror(errno), errno);
+					exit(1);
+				}
+			}
+			else
+				bacpy(&bdaddr, &di.bdaddr);	
+
+			// Test MAC to addr_buff
+			ba2str(&bdaddr, addr_buff);			
+			
+			if ((strcmp (addr_real, addr_buff) == 0))
+			{
+				printf("MAC on interface hci%i is not changing. Hardware is likely not compatible.\n", device);
+				printf("Disabling MAC changing for this interface. See README for more info.\n");
+				change_addr = 0;
+			}
+	
+			// Only run once
+			verify_mac = 0;
+		}
 	}
 	
 	// Close device
@@ -190,7 +242,7 @@ int main(int argc, char *argv[])
 	unsigned long iterations = 1;
 	
 	// Default mode, verbosity, device ID
-	int change_addr = 0;
+	int change_addr = 1;
 	int verbose = 0;
 	int device = -1;
 	

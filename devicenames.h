@@ -92,7 +92,7 @@ char * device_name[] = {
 "Samsung Galaxy Prevail",
 "Samsung Galaxy S",
 "Samsung Galaxy S Advance",
-"Samsugn Galaxy S Aviator",
+"Samsung Galaxy S Aviator",
 "Samsung Galaxy S Blaze 4G",
 "Samsung Galaxy S Beam",
 "Samsung Galaxy S II",
