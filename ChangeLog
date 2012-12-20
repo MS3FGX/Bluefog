@@ -1,5 +1,7 @@
 12/19/12:
 	Code for detecting if interface MAC is changing
+	Added -c for randomizing class
+	Removed iteration parameter, fog now runs indefinitely 
 
 12/18/12:
 	Development begins

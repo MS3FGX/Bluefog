@@ -1,5 +1,4 @@
-/*
- * 
+/* 
  *  Bluefog - Create phantom Bluetooth devices
  * 
  *  Bluefog is a tool to create phantom Bluetooth devices. Can be used
@@ -38,8 +37,8 @@
 struct thread_data
 {
 	int thread_id;
-	unsigned long iterations;
 	int change_addr;
+	int change_class;
 	int verbose;
 	int device;
 	int delay;
@@ -83,29 +82,31 @@ void *thread_spoof(void *threadarg)
 {	
 	// Define variables from struct
 	int thread_id, change_addr, verbose, device, delay;
-	unsigned long iterations;
+	int change_class;
 	
 	// Local use variables
 	int bt_socket;
-	unsigned long i;
 	int verify_mac = 1;
 		
 	// Pull data out of struct
 	struct thread_data *local_data;
 	local_data = (struct thread_data *) threadarg;
 	thread_id = local_data->thread_id;
-	iterations = local_data->iterations;
 	device = local_data->device;
 	change_addr = local_data->change_addr;
 	verbose = local_data->verbose;
 	delay = local_data->delay;
+	change_class = local_data->change_class;
 	
 	// MAC struct
 	bdaddr_t bdaddr;
 	bacpy(&bdaddr, BDADDR_ANY);
 	struct hci_dev_info di;
 	char addr_real[19] = {0};
-	char addr_buff[19] = {0};	
+	char addr_buff[19] = {0};
+	
+	// Device class
+	char class[9] = {0};
 	
 	// Init device	
 	if (verbose)
@@ -133,7 +134,7 @@ void *thread_spoof(void *threadarg)
 	// Real MAC stored to addr_real
 	ba2str(&bdaddr, addr_real);
 	
-	for (i = 0; i < iterations; i++)
+	for (;;)
 	{		
 		// Verbose doesn't work here, have to buffer to something first
 		
@@ -143,7 +144,34 @@ void *thread_spoof(void *threadarg)
 
 		if (verbose)
 			printf("hci%d renamed to '%s'\n", device, random_name());
+		
+		// Change class
+		if (change_class)
+		{
+			// Generate a random class
+			int major = (rand() % 9);
+			int minor = (rand() % 6);
+	
+			// Randomly add service flags
+			int flag = 0;              
+			if (rand() % 2) flag += 1;
+			if (rand() % 2) flag += 2;
+			if (rand() % 2) flag += 4;
+			if (rand() % 2) flag += 8;
+			if (rand() % 2) flag += 10;
+			if (rand() % 2) flag += 20;
+			if (rand() % 2) flag += 40;
+			if (rand() % 2) flag += 80;
+
+			// Put class into string
+			sprintf(class, "0x%02x%02x%02x", flag, major, minor);
 			
+			uint32_t cod = strtoul(class, NULL, 16);
+			if (hci_write_class_of_dev(bt_socket, cod, 2000) < 0)
+				fprintf(stderr,"Can't write local class of device on hci%d: %s (%d)\n", device, strerror(errno), errno);
+		}	
+		
+		
 		// Attempt to change address
 		if (change_addr)
 		{
@@ -153,11 +181,10 @@ void *thread_spoof(void *threadarg)
 			if (verbose)
 					printf("hci%d addr changed to to '%s'\n", device, random_addr());	
 		}
-					
+		
 		// Wait
-		if (i != (iterations - 1))
-			sleep(delay);
-			
+		sleep(delay);
+					
 		// Verify MAC actually changed
 		if (verify_mac)
 		{	
@@ -201,9 +228,8 @@ static void help(void)
 {
 	printf("%s (v%s) by MS3FGX\n", APPNAME, VERSION);
 	printf("----------------------------------------------------------------\n");
-	printf("Bluefog is a tool used to create phantom Bluetooth devices with\n"
-		"a CSR Bluetooth adapter. Can be used to confuse attackers or test\n"
-		"Bluetooth detection systems.\n");
+	printf("Bluefog is a tool used to create phantom Bluetooth devices. Can\n"
+		"be used to confuse attackers or test Bluetooth detection systems.\n");
 	printf("\n");
 	printf("For more information, see www.digifail.com\n");
 	printf("\n");
@@ -218,7 +244,7 @@ static struct option main_options[] = {
 	{ "interface", 1, 0, 'i' },
 	{ "threads", 1, 0, 't' },
 	{ "delay", 1, 0, 'd' },
-	{ "count", 1, 0, 'c' },
+	{ "class", 1, 0, 'c' },
 	{ "verbose", 0, 0, 'v' },
 	{ "help", 0, 0, 'h' },
 	{ 0, 0, 0, 0 }
@@ -237,12 +263,10 @@ int main(int argc, char *argv[])
 	
 	// Delay between spoofs, default 10
 	int delay = 10;
-
-	// Default number of iterations
-	unsigned long iterations = 1;
 	
 	// Default mode, verbosity, device ID
 	int change_addr = 1;
+	int change_class = 0;
 	int verbose = 0;
 	int device = -1;
 	
@@ -251,7 +275,7 @@ int main(int argc, char *argv[])
 	bacpy(&bdaddr, BDADDR_ANY);
 	char addr[19] = {0};
 
-	while ((opt=getopt_long(argc, argv, "+t:d:c:i:hvm", main_options, NULL)) != EOF)
+	while ((opt=getopt_long(argc, argv, "+t:d:i:chv", main_options, NULL)) != EOF)
 	{
 		// Handle options
 		switch (opt)
@@ -279,12 +303,7 @@ int main(int argc, char *argv[])
 			}
 			break;			
 		case 'c':
-			iterations = atoi(optarg);
-			if (iterations <= 0)
-			{
-				printf("Parameter cannot be negative..\n");
-				exit(1);
-			}
+			change_class = 1;
 			break;
 		case 'v':
 			verbose = 1;
@@ -307,16 +326,7 @@ int main(int argc, char *argv[])
 		printf("You need to be root to run Bluefog!\n");
 		exit(1);
 	}
-	
-	// Check to see if iterations is divisible by thread count
-	if ( iterations % numthreads != 0 )
-	{
-		printf(
-		"Iterations cannot be evenly distributed among the current number of"
-		" threads.\nAdjust input variables and try again.\n");
-		exit(1);
-	}
-		
+			
 	// Seed PRNG
 	srand(time(NULL));
 	
@@ -328,18 +338,18 @@ int main(int argc, char *argv[])
 	ba2str(&bdaddr, addr);
 	if (!strcmp(addr, "00:00:00:00:00:00"))
 	{
-		printf("Bluetooth Interface: Automatic\n");
+		printf("Interface: Automatic\n");
 	}
 	else
 	{
 		numthreads = 1;
 		device = hci_devid(addr);		
-		printf("Bluetooth Interface: hci%i\n", device);
+		printf("Interface: hci%i\n", device);
 	}
 
 	printf("Available device names: %i\n", dev_max + 1);
-	printf("Spoofing %lu devices on %i threads.\n", iterations, numthreads);
 	printf("Fogging...\n");
+	printf("Hit Ctrl+C to end.\n");	
 
 	for( t = 0; t < numthreads; t++ )
 	{
@@ -353,8 +363,8 @@ int main(int argc, char *argv[])
 			thread_data_array[t].device = device;
 			
 		// Default information for all threads
-		thread_data_array[t].iterations = iterations / numthreads;
 		thread_data_array[t].change_addr = change_addr;
+		thread_data_array[t].change_class = change_class;
 		thread_data_array[t].verbose = verbose;
 		thread_data_array[t].delay = delay;
 		
