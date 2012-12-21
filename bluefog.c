@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
 	int numthreads = 1;
 	int delay = 20;
 	int change_addr = 1;
-	int change_class = 0;
+	int change_class = 1;
 	int device = -1;	
 	char *static_name = NULL;
 
