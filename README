@@ -32,6 +32,14 @@ simultaneous Bluetooth radios, but that value may go up as I experiment with
 it some more.
 
 --------------------------------------------------------------------------------
+- Compatibility                                                                -
+--------------------------------------------------------------------------------
+
+To date, Bluefog has only been tested with Bluetooth adapters based on chipsets
+from Cambridge Silicon Radio (CSR) and Broadcom. Compatibility reports in
+regards to other hardware would be greatly appreciated.
+
+--------------------------------------------------------------------------------
 - Installation                                                                 -
 --------------------------------------------------------------------------------
 
