@@ -20,7 +20,7 @@ $(APPNAME): $(SOURCES)
 
 # Build tarball
 release: clean
-        tar --exclude='.*' -C ../ -czvf /tmp/$(APPNAME)-$(VERSION).tar.gz $(APPNAME)-$(VERSION)
+	tar --exclude='.*' -C ../ -czvf /tmp/$(APPNAME)-$(VERSION).tar.gz $(APPNAME)-$(VERSION)
 
 # Clean for dist
 clean:
