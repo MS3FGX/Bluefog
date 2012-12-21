@@ -1,0 +1,138 @@
+================================================================================
+=                 Bluefog - Generate Phantom Bluetooth Devices                 =
+=                       Tom Nardi (MS3FGX@gmail.com)                           =
+================================================================================
+
+WARNING! WARNING! WARNING!
+-----------------------------
+Bluefog is in the VERY early stages of development, I cannot guarantee that it
+is completely safe to use, and there are absolutely some areas of the software
+which need attention and improvement. There is currently very little in the way
+of error checking, and I can't promise it will always behave (especially if it
+encounters hardware which I haven't been able to test with yet).
+
+If you get Bluefog up and running or have any questions/comments, please let me
+know.
+-----------------------------
+
+Assuming it actually works for you, Bluefog is able to generate an essentially
+unlimited number of phantom Bluetooth devices. It can be used to test Bluetooth
+scanning and monitoring systems, make it more difficult for attackers to lock
+onto your devices, or otherwise complicate the normal operation of Bluetooth
+devices.
+
+Technically Bluefog can work with just one Bluetooth adapter, but it works much
+better when you connect up multiple adapters. Currently Bluefog can support 4
+simultaneous Bluetooth radios, but that value may go up as I experiment with
+it some more.
+
+--------------------------------------------------------------------------------
+- Installation                                                                 -
+--------------------------------------------------------------------------------
+
+To compile Bluefog, simply run the command "make" in this directory. If you get
+any message about missing libraries, use your distribution's package manager to
+install them. This will let you run Bluefog from the current directory for a
+quick test, but not install it to the system.
+
+To actually install Bluefog, use the command "make install". Since this will
+install Bluefog to the system directories, you will need to run this as root or
+through sudo.
+
+When and if you want to remove Bluefog, you would use the command "make
+uninstall". As with "install", this makes changes to the system directories and
+will therefore require root permissions.
+
+In addition, if you are upgrading from a previous version, there is also the
+command "make upgrade". This will remove any older versions of Bluefog, compile
+the new version, and finally install it to the system. As you might have
+guessed, this also requires root permissions.
+
+--------------------------------------------------------------------------------
+- Usage                                                                        -
+--------------------------------------------------------------------------------
+
+As of the current version, Bluefog supports the following options:
+
+-i <interface>
+    Allows you to manually select which interface Bluefog uses. Without this
+option, Bluefog will automatically detect the first Bluetooth device and use
+that.
+
+If you've chosen to use multiple threads, Bluefog will use all devices
+available, so this option won't have any effect.
+
+-t <threads>
+    With this option you can set how many parallel jobs you want Bluefog to
+perform. This number should match however many physical Bluetooth radios your
+computer currently has.
+
+The maximum number of threads is currently 4 (which obviously requires 4
+separate Bluetooth adapters to be on the system), but may change in the future.
+
+-n <name>
+    Usually, Bluefog will chose a random name from the hundreds of names
+included with the software. If you use this option however, you can set Bluefog
+to use the same custom name for all devices it spoofs. This option is great at
+parties.
+
+-d <seconds>
+    This determines how many seconds to wait between device spoofs. The minimum
+value for this option is 5 seconds, but realistically, anything under 20
+probably won't work very well.
+
+-m
+    This option allows you to toggle the randomization of Bluetooth MAC
+addresses by Bluefog. Realistically, there isn't much point in randomizing
+the device name if you don't change the MAC (as most devices ignore the name
+anyway), but I've included the option anyway.
+
+The default is ENABLED, so most people can safely ignore this.
+
+-c
+    This option allows you to toggle the randomization of the spoofed device's
+class information. If you leave this option off, Bluefog will set all spoofed
+device's class to that of a standard smartphone.
+
+-v
+    This option allows you to toggle verbose mode. With verbose mode on, you'll
+be able to see the hardware being initialized, and see a message in the
+terminal every time a new device is spoofed.
+
+--------------------------------------------------------------------------------
+- Acknowledgements                                                             -
+--------------------------------------------------------------------------------
+
+Bluefog was greatly inspired by "SpoofTooph", written by JP Dunning (.ronin).
+In addition to the spiritual support, Bluefog takes a few functions from
+SpoofTooph in the areas of class and MAC address randomization.
+
+You can read more about JP Dunning's projects on his site:
+http://www.hackfromacave.com/
+
+Bluefog uses quite a bit of code from the "BlueZ" project by Marcel Holtmann,
+most notably the majority of bdaddr.c, oui.c, and oui.h, plus some functions
+from hciconfig.c.
+
+For more information, check out the official BlueZ site:
+http://www.bluez.org/
+
+--------------------------------------------------------------------------------
+- License                                                                      -
+--------------------------------------------------------------------------------
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License version 2 as published by the Free
+Software Foundation.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+
+For details, see the file "COPYING" in the source directory.
+
+--------------------------------------------------------------------------------
+- More Info                                                                    -
+--------------------------------------------------------------------------------
+
+For more information and updates, please see www.digifail.com
