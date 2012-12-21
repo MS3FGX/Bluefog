@@ -15,6 +15,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <pthread.h>
+#include <time.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
@@ -33,6 +34,7 @@
 #define THREAD_DELAY 1
 #define MAX_DELAY 300
 #define SHUTDOWN_WAIT 2
+#define DEFAULT_CLASS "0x5a020c"
 
 // Global variables
 int verbose = 0;
@@ -43,9 +45,26 @@ struct thread_data
 	int thread_id;
 	int change_addr;
 	int change_class;
+	char *static_name;
 	int device;
 	int delay;
 };
+
+char* get_localtime()
+{
+	// Time variables
+	time_t rawtime;
+	struct tm * timeinfo;
+	static char time_string[20];
+	
+	// Find time and put it into time_string
+	time (&rawtime);
+	timeinfo = localtime(&rawtime);
+	strftime(time_string,20,"%D %T",timeinfo);
+	
+	// Send it back
+	return(time_string);
+}
 
 // Open BT socket and return ID
 int get_bt_socket (int device)
@@ -111,8 +130,8 @@ struct thread_data thread_data_array[MAX_THREADS];
 void *thread_spoof(void *threadarg)
 {	
 	// Define variables from struct
-	int thread_id, change_addr, device, delay;
-	int change_class;
+	int thread_id, change_addr, device, delay, change_class;
+	char *static_name;
 	
 	// Local use variables
 	int bt_socket;
@@ -125,6 +144,7 @@ void *thread_spoof(void *threadarg)
 	change_addr = local_data->change_addr;
 	delay = local_data->delay;
 	change_class = local_data->change_class;
+	static_name = local_data->static_name;
 	
 	// MAC struct
 	bdaddr_t bdaddr;
@@ -144,7 +164,6 @@ void *thread_spoof(void *threadarg)
 	
 	// Device class
 	char class[9] = {0};
-	//char * class_str;
 		
 	// Init device	
 	if (verbose)
@@ -179,7 +198,11 @@ void *thread_spoof(void *threadarg)
 		}
 		
 		// Always change name
-		name_buffer = random_name();
+		if (static_name != NULL)
+			name_buffer = static_name;
+		else
+			name_buffer = random_name();
+		
 		if (hci_write_local_name(bt_socket, name_buffer, 2000) < 0)
 			fprintf(stderr, "Can't change local name on hci%d: %s (%d)\n", device, strerror(errno), errno);
 			
@@ -207,7 +230,7 @@ void *thread_spoof(void *threadarg)
 		}
 		else
 		{
-			strcpy(class, "0x5a020c");		
+			strcpy(class, DEFAULT_CLASS);		
 		}	write_class(bt_socket, device, class);
 
 		// Make discoverable
@@ -259,25 +282,35 @@ void *thread_spoof(void *threadarg)
 
 static void help(void)
 {
-	printf("%s (v%s) by MS3FGX\n", APPNAME, VERSION);
+	printf("%s (v%s) by Tom Nardi \"MS3FGX\" (MS3FGX@gmail.com)\n", APPNAME, VERSION);
 	printf("----------------------------------------------------------------\n");
-	printf("Bluefog is a tool used to create phantom Bluetooth devices. Can\n"
+	printf("Bluefog is a tool used to create phantom Bluetooth devices. It can\n"
 		"be used to confuse attackers or test Bluetooth detection systems.\n");
+	printf("\n");
+	printf("At the moment, Bluefog has only been tested with CSR and Broadcom\n"
+			"chipsets. Compatibility reports from other devices would be\n"
+			"greatly appreciated\n");
 	printf("\n");
 	printf("For more information, see www.digifail.com\n");
 	printf("\n");
 	printf("Options:\n"
-		"\t-a <stuff>      This does stuff.\n"
-		"\t-b <stuff>      More stuff.\n"
-		"\t-c <stuff>      More stuff.\n"
+		"\t-i <interface>   Manually select device to use, default is automatic\n"
+		"\t-t <threads>     Set this to match how many Bluetooth adapters you have.\n"
+		"\t-n <name>        Sets a static device name instead of random.\n"
+		"\t-d <seconds>     How many seconds to wait between spoofs.\n"
+		"\t-m               Toggle randomization of MAC address, default is enabled\n"
+		"\t-c               Toggle randomization of class info, default disabled\n"
+		"\t-v               Toggle verbose messages, default disabled\n"
 		"\n");
 }
 
 static struct option main_options[] = {
 	{ "interface", 1, 0, 'i' },
 	{ "threads", 1, 0, 't' },
+	{ "name", 1, 0, 'n' },
 	{ "delay", 1, 0, 'd' },
 	{ "class", 1, 0, 'c' },
+	{ "mac", 0, 0, 'm' },
 	{ "verbose", 0, 0, 'v' },
 	{ "help", 0, 0, 'h' },
 	{ 0, 0, 0, 0 }
@@ -285,31 +318,28 @@ static struct option main_options[] = {
  
 int main(int argc, char *argv[])
 {
-	// Declare variables here
+	// General variables
 	int t, opt;
-	
+		
 	// Thread ID
 	pthread_t threads[MAX_THREADS];
-	
-	// Threads to run, default 1
-	int numthreads = 1;
-	
-	// Delay between spoofs, default 10
-	int delay = 10;
-	
-	// Default mode, verbosity, device ID
-	int change_addr = 1;
-	int change_class = 0;
-	int device = -1;
-	
+		
 	// MAC struct
 	bdaddr_t bdaddr;
 	bacpy(&bdaddr, BDADDR_ANY);
 	char addr[19] = {0};
+	
+	// Options
+	int numthreads = 1;
+	int delay = 20;
+	int change_addr = 1;
+	int change_class = 0;
+	int device = -1;	
+	char *static_name = NULL;
 
-	while ((opt=getopt_long(argc, argv, "+t:d:i:chv", main_options, NULL)) != EOF)
+	// Process options
+	while ((opt=getopt_long(argc, argv, "+t:d:i:n:mchv", main_options, NULL)) != EOF)
 	{
-		// Handle options
 		switch (opt)
 		{
 		case 'i':
@@ -341,7 +371,10 @@ int main(int argc, char *argv[])
 			verbose = 1;
 			break;
 		case 'm':
-			change_addr = 1;
+			change_addr = 0;
+			break;
+		case 'n':
+			static_name = strdup(optarg);			
 			break;
 		case 'h':
 			help();
@@ -365,22 +398,48 @@ int main(int argc, char *argv[])
 	// Boilerplate
 	printf("%s (v%s) by MS3FGX\n", APPNAME, VERSION);
 	printf("---------------------------\n");
-		
+				
 	// Select hardware
+	printf("Bluetooth Interface: ");
 	ba2str(&bdaddr, addr);
 	if (!strcmp(addr, "00:00:00:00:00:00"))
 	{
-		printf("Interface: Automatic\n");
+		printf("Auto\n");
 	}
 	else
 	{
 		numthreads = 1;
 		device = hci_devid(addr);		
-		printf("Interface: hci%i\n", device);
+		printf("hci%i\n", device);
 	}
 
-	printf("Available device names: %i\n", dev_max + 1);
-	printf("Fogging...\n");
+	// Static or random names
+	printf("Device Name: ");
+	if (static_name == NULL)
+	{
+		printf("Randomized\n");
+		
+		// Number of names loaded
+		printf("Available Names: %i\n", dev_max + 1);
+	}
+	else
+		printf("Static (%s)\n", static_name);
+	
+	// Static or random addr
+	printf("MAC Address: ");
+	if (change_class)
+		printf("Randomized\n");
+	else
+		printf("Default\n");	
+
+	// Static or random class
+	printf("Device Class: ");
+	if (change_class)
+		printf("Randomized\n");
+	else
+		printf("Static (%s)\n", DEFAULT_CLASS);
+
+	printf("Fogging started at [%s] on %i threads.\n", get_localtime(), numthreads);
 	printf("Hit Ctrl+C to end.\n");	
 
 	for( t = 0; t < numthreads; t++ )
@@ -397,6 +456,7 @@ int main(int argc, char *argv[])
 		// Default information for all threads
 		thread_data_array[t].change_addr = change_addr;
 		thread_data_array[t].change_class = change_class;
+		thread_data_array[t].static_name = static_name;
 		thread_data_array[t].delay = delay;
 		
 		// Start thread
@@ -405,7 +465,7 @@ int main(int argc, char *argv[])
 			
 		// Sleep for a second to stagger threads (needs experimentation)
 		if (numthreads > 1)
-			sleep (delay / 2);
+			sleep (delay / numthreads);
 	}
 	
 	// Wait for threads to complete

@@ -1,6 +1,10 @@
 12/21/12: End Of The World Edition
 	MAC spoofing now works on Broadcom and CSR
 	Set default class when not randomized
+	Added -n option to specify static (troll) device name
+	Improve status info on startup
+	Integrated data from "Operation Street Sweep"
+	Rough -h output added
 
 12/19/12:
 	Code for detecting if interface MAC is changing
