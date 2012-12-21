@@ -11,6 +11,11 @@ which need attention and improvement. There is currently very little in the way
 of error checking, and I can't promise it will always behave (especially if it
 encounters hardware which I haven't been able to test with yet).
 
+It's also possible that Bluefog will wipe your Bluetooth adapter's real MAC
+addresses. While the changes Bluefog makes are supposed to be temporary, I
+managed to permanently delete the address on my laptop's internal hardware, so
+keep it in mind.
+
 If you get Bluefog up and running or have any questions/comments, please let me
 know.
 -----------------------------
