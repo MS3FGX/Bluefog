@@ -25,13 +25,17 @@
 // MAC changing functions
 #include "bdaddr.c"
 
-#define VERSION	"0.0.1"
+#define VERSION	"0.0.2"
 #define APPNAME "Bluefog"
 
 // Sane defaults
 #define MAX_THREADS	4
 #define THREAD_DELAY 1
 #define MAX_DELAY 300
+#define SHUTDOWN_WAIT 2
+
+// Global variables
+int verbose = 0;
 
 // Data to pass to threads
 struct thread_data
@@ -39,14 +43,36 @@ struct thread_data
 	int thread_id;
 	int change_addr;
 	int change_class;
-	int verbose;
 	int device;
 	int delay;
 };
 
+// Open BT socket and return ID
+int get_bt_socket (int device)
+{
+	int bt_socket;	
+	bt_socket = hci_open_dev(device);
+	if (bt_socket < 0)
+	{
+		printf("Failed to initalize hci%i!\n", device);
+		exit(1); // TODO: Better shutdown
+	}
+	return(bt_socket);
+}
+
+// Write class info
+int write_class (int bt_socket, int device, char *class)
+{
+	uint32_t cod = strtoul(class, NULL, 16);
+	if (hci_write_class_of_dev(bt_socket, cod, 2000) < 0)
+		fprintf(stderr,"Can't write local class of device on hci%d: %s (%d)\n", device, strerror(errno), errno);
+
+	return(0);
+}
+
+// Select random name from list within range
 char* random_name (void)
 {	
-	// Select random name from list within range
 	return (device_name[((rand() % dev_max) + 1)] );	
 }
 
@@ -55,13 +81,16 @@ char* random_name (void)
 char* random_addr (void)
 {	
 	char addr_part[3] = {0};
-	static char addr[21] = {0};
+	static char addr[18] = {0};
 	int i = 0;
+	
+	// Start off the MAC with 00:
 	addr[i++] = '0';
 	addr[i++] = '0';
 	addr[i++] = ':';
 	
-	while ( i < 18)
+	// Fill in the middle
+	while ( i < 14)
 	{
 		sprintf(addr_part, "%02x", (rand() % 254));	
 		addr[i++] = addr_part[0];
@@ -69,10 +98,11 @@ char* random_addr (void)
 		addr[i++] = ':';
 	}
 
+	// Tack 2 more random characters to finish it
 	sprintf(addr_part, "%02x", (rand() % 254));	
 	addr[i++] = addr_part[0];
 	addr[i++] = addr_part[1];
-	
+		
 	return(addr);
 }
 
@@ -81,20 +111,18 @@ struct thread_data thread_data_array[MAX_THREADS];
 void *thread_spoof(void *threadarg)
 {	
 	// Define variables from struct
-	int thread_id, change_addr, verbose, device, delay;
+	int thread_id, change_addr, device, delay;
 	int change_class;
 	
 	// Local use variables
 	int bt_socket;
-	int verify_mac = 1;
-		
+
 	// Pull data out of struct
 	struct thread_data *local_data;
 	local_data = (struct thread_data *) threadarg;
 	thread_id = local_data->thread_id;
 	device = local_data->device;
 	change_addr = local_data->change_addr;
-	verbose = local_data->verbose;
 	delay = local_data->delay;
 	change_class = local_data->change_class;
 	
@@ -102,49 +130,59 @@ void *thread_spoof(void *threadarg)
 	bdaddr_t bdaddr;
 	bacpy(&bdaddr, BDADDR_ANY);
 	struct hci_dev_info di;
-	char addr_real[19] = {0};
-	char addr_buff[19] = {0};
+	char addr_ref[18] = {0};
+	char addr_buff[18] = {0};
+	
+	// Buffers for verbose, ridiculous
+	char *addr_buffer = {0};
+	char *name_buffer = {0};
+	
+	// For discoverability
+	struct hci_dev_req dr;
+	dr.dev_id  = device;
+	dr.dev_opt = SCAN_PAGE | SCAN_INQUIRY;
 	
 	// Device class
 	char class[9] = {0};
-	
+	//char * class_str;
+		
 	// Init device	
 	if (verbose)
 		printf("Initalizing hci%i on thread %i.\n", device, thread_id);
 
-	bt_socket = hci_open_dev(device);
-	if (bt_socket < 0)
-	{
-		printf("Failed to initalize hci%i on thread %i!\n", device, thread_id);
-		exit(1); // TODO: Better shutdown
-	}
+	// Get a socket
+	bt_socket = get_bt_socket(device);
 		
 	// Get MAC for reference
-	if (!bacmp(&di.bdaddr, BDADDR_ANY))
+	if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
 	{
-		if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
-		{
 			fprintf(stderr, "Can't read address for hci%d: %s (%d)\n", device, strerror(errno), errno);
 			hci_close_dev(bt_socket);
-		}
 	}
-	else
-		bacpy(&bdaddr, &di.bdaddr);	
-
-	// Real MAC stored to addr_real
-	ba2str(&bdaddr, addr_real);
+	
+	// Original MAC stored to addr_ref
+	ba2str(&bdaddr, addr_ref);
 	
 	for (;;)
-	{		
-		// Verbose doesn't work here, have to buffer to something first
+	{				
+		// Attempt to change address first, since it probably requires reset
+		if (change_addr)
+		{
+			addr_buffer = random_addr();
+			if (cmd_bdaddr(device, bt_socket, addr_buffer) == 2)
+			{
+				// This type of device needs to be manually restarted
+				hci_close_dev(bt_socket);
+				sleep(SHUTDOWN_WAIT);
+				bt_socket = get_bt_socket(device);
+			}
+		}
 		
 		// Always change name
-		if (hci_write_local_name(bt_socket, random_name(), 2000) < 0)
+		name_buffer = random_name();
+		if (hci_write_local_name(bt_socket, name_buffer, 2000) < 0)
 			fprintf(stderr, "Can't change local name on hci%d: %s (%d)\n", device, strerror(errno), errno);
-
-		if (verbose)
-			printf("hci%d renamed to '%s'\n", device, random_name());
-		
+			
 		// Change class
 		if (change_class)
 		{
@@ -164,53 +202,48 @@ void *thread_spoof(void *threadarg)
 			if (rand() % 2) flag += 80;
 
 			// Put class into string
-			sprintf(class, "0x%02x%02x%02x", flag, major, minor);
-			
-			uint32_t cod = strtoul(class, NULL, 16);
-			if (hci_write_class_of_dev(bt_socket, cod, 2000) < 0)
-				fprintf(stderr,"Can't write local class of device on hci%d: %s (%d)\n", device, strerror(errno), errno);
-		}	
-		
-		
-		// Attempt to change address
-		if (change_addr)
-		{
-			// Assign random MAC
-			cmd_bdaddr(device, random_addr());
-				
-			if (verbose)
-					printf("hci%d addr changed to to '%s'\n", device, random_addr());	
+			sprintf(class, "0x%02x%02x%02x", flag, major, minor);		
+			write_class(bt_socket, device, class);
 		}
+		else
+		{
+			strcpy(class, "0x5a020c");		
+		}	write_class(bt_socket, device, class);
+
+		// Make discoverable
+		if (ioctl(bt_socket, HCISETSCAN, (unsigned long) &dr) < 0)
+		{
+			fprintf(stderr, "Can't set scan mode on hci%d: %s (%d)\n", device, strerror(errno), errno);
+			exit(1);
+		}
+
+		// Print device if verbose
+		if (verbose)
+			printf("hci%i - Name: %s Class: %s MAC: %s\n", device, name_buffer, class, addr_buffer);
 		
 		// Wait
 		sleep(delay);
-					
+							
 		// Verify MAC actually changed
-		if (verify_mac)
-		{	
-			if (!bacmp(&di.bdaddr, BDADDR_ANY))
+		if (!bacmp(&di.bdaddr, BDADDR_ANY))
+		{
+			if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
 			{
-				if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
-				{
-					fprintf(stderr, "Can't read address for hci%d: %s (%d)\n", device, strerror(errno), errno);
-					exit(1);
-				}
+				fprintf(stderr, "Can't read address for hci%d: %s (%d)\n", device, strerror(errno), errno);
+				exit(1);
 			}
-			else
-				bacpy(&bdaddr, &di.bdaddr);	
+		}
+		else
+			bacpy(&bdaddr, &di.bdaddr);	
 
-			// Test MAC to addr_buff
-			ba2str(&bdaddr, addr_buff);			
+		// Test MAC to addr_buff
+		ba2str(&bdaddr, addr_buff);	
 			
-			if ((strcmp (addr_real, addr_buff) == 0))
-			{
-				printf("MAC on interface hci%i is not changing. Hardware is likely not compatible.\n", device);
-				printf("Disabling MAC changing for this interface. See README for more info.\n");
-				change_addr = 0;
-			}
-	
-			// Only run once
-			verify_mac = 0;
+		if ((strcmp (addr_ref, addr_buff) == 0))
+		{
+			printf("MAC on interface hci%i is not changing. Hardware is likely not compatible.\n", device);
+			printf("Disabling MAC changing for this interface. See README for more info.\n");
+			change_addr = 0;
 		}
 	}
 	
@@ -267,7 +300,6 @@ int main(int argc, char *argv[])
 	// Default mode, verbosity, device ID
 	int change_addr = 1;
 	int change_class = 0;
-	int verbose = 0;
 	int device = -1;
 	
 	// MAC struct
@@ -296,7 +328,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'd':
 			delay = atoi(optarg);		
-			if (delay > MAX_DELAY || delay <= 0)
+			if (delay > MAX_DELAY || delay <= 4)
 			{
 				printf("Invalid delay value. See README.\n");
 				exit(1);
@@ -365,7 +397,6 @@ int main(int argc, char *argv[])
 		// Default information for all threads
 		thread_data_array[t].change_addr = change_addr;
 		thread_data_array[t].change_class = change_class;
-		thread_data_array[t].verbose = verbose;
 		thread_data_array[t].delay = delay;
 		
 		// Start thread
@@ -374,7 +405,7 @@ int main(int argc, char *argv[])
 			
 		// Sleep for a second to stagger threads (needs experimentation)
 		if (numthreads > 1)
-			sleep (THREAD_DELAY);
+			sleep (delay / 2);
 	}
 	
 	// Wait for threads to complete

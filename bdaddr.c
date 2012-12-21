@@ -25,7 +25,7 @@
 
 #include "oui.h"
 
-static int transient = 0;
+static int transient = 1;
 
 static int generic_reset_device(int dd)
 {
@@ -158,7 +158,7 @@ static int csr_reset_device(int dd)
 
 	unsigned char cp[254], rp[254];
 	struct hci_request rq;
-
+	
 	if (transient)
 		cmd[6] = 0x02;
 
@@ -174,10 +174,9 @@ static int csr_reset_device(int dd)
 	rq.clen   = sizeof(cmd) + 1;
 	rq.rparam = rp;
 	rq.rlen   = sizeof(rp);
-
+	
 	if (hci_send_req(dd, &rq, 2000) < 0)
 		return -1;
-
 	return 0;
 }
 
@@ -285,37 +284,30 @@ static struct {
 	{ 65535,	NULL,			NULL			},
 };
 
-static int cmd_bdaddr(int dev, char * new_addr)
+static int cmd_bdaddr(int dev, int dd, char * new_addr)
 {
   struct hci_dev_info di;
 	struct hci_version ver;
 	bdaddr_t bdaddr;
-	char addr[18], oui[9], *comp;
-	int i, dd, reset = 1;
+	char addr[18], oui[9];
+	int i;
 
 	bacpy(&bdaddr, BDADDR_ANY);
 
 	optind = 0;
-
-	dd = hci_open_dev(dev);
-	if (dd < 0) {
-		fprintf(stderr, "Can't open device hci%d: %s (%d)\n",
-						dev, strerror(errno), errno);
-		return(1);
-	}
-
+	
 	if (hci_devinfo(dev, &di) < 0) {
 		fprintf(stderr, "Can't get device info for hci%d: %s (%d)\n",
 						dev, strerror(errno), errno);
 		hci_close_dev(dd);
-		return(1);
+		exit(1);
 	}
 
 	if (hci_read_local_version(dd, &ver, 1000) < 0) {
 		fprintf(stderr, "Can't read version info for hci%d: %s (%d)\n",
 						dev, strerror(errno), errno);
 		hci_close_dev(dd);
-		return(1);
+		exit(1);
 	}
 
 	if (!bacmp(&di.bdaddr, BDADDR_ANY)) {
@@ -323,63 +315,36 @@ static int cmd_bdaddr(int dev, char * new_addr)
 			fprintf(stderr, "Can't read address for hci%d: %s (%d)\n",
 						dev, strerror(errno), errno);
 			hci_close_dev(dd);
-			return(1);
+			exit(1);
 		}
 	} else
 		bacpy(&bdaddr, &di.bdaddr);
 
-	ba2oui(&bdaddr, oui);
-	comp = ouitocomp(oui);
-
-	ba2str(&bdaddr, addr);
-
-	if (comp) {
-		printf(" (%s)\n", comp);
-		free(comp);
-	} 
-
 	str2ba(new_addr, &bdaddr);
+
 	if (!bacmp(&bdaddr, BDADDR_ANY)) {
+		printf("Invalid MAC! Something has gone horribly wrong!\n");
 		hci_close_dev(dd);
 		return(0);
 	}
+	
 	for (i = 0; vendor[i].compid != 65535; i++)
 		if (ver.manufacturer == vendor[i].compid) {
 			ba2oui(&bdaddr, oui);
-			comp = ouitocomp(oui);
-
 			ba2str(&bdaddr, addr);
-			printf("New BD address: %s", addr);
-
-			if (comp) {
-				printf(" (%s)\n\n", comp);
-				free(comp);
-			} else
-				printf("\n\n");
-
-
+			
 			if (vendor[i].write_bd_addr(dd, &bdaddr) < 0) {
 				fprintf(stderr, "Can't write new address\n");
 				hci_close_dev(dd);
 				return(1);
 			}
-
-			printf("Address changed\n");
-
-			if (reset && vendor[i].reset_device)
-			{
-				if (vendor[i].reset_device(dd) > 0)
-				{
-					ioctl(dd, HCIDEVRESET, dev);
-					printf("Device reset successully\n");
-				}
-			}
+		
+			if (vendor[i].reset_device(dd) < 0)
+				return(2);
 			else
-			{
-				printf("Reset device now\n");
-			}
+				ioctl(dd, HCIDEVRESET, dev);
 
-			hci_close_dev(dd);
+			// Everything worked
 			return(0);
 		}
 
