@@ -420,7 +420,7 @@ int main(int argc, char *argv[])
 		printf("Randomized\n");
 		
 		// Number of names loaded
-		printf("Available Names: %i\n", dev_max + 1);
+		printf("Available Names: %i\n", dev_max - 1);
 	}
 	else
 		printf("Static (%s)\n", static_name);

@@ -118,7 +118,8 @@ terminal every time a new device is spoofed.
 
 Bluefog was greatly inspired by "SpoofTooph", written by JP Dunning (.ronin).
 In addition to the spiritual support, Bluefog takes a few functions from
-SpoofTooph in the areas of class and MAC address randomization.
+SpoofTooph in the areas of class and MAC address randomization, and includes
+the data collected by ronin's "Bluetooth Profiling Project".
 
 You can read more about JP Dunning's projects on his site:
 http://www.hackfromacave.com/
@@ -129,6 +130,12 @@ from hciconfig.c.
 
 For more information, check out the official BlueZ site:
 http://www.bluez.org/
+
+Bluefog also contains data collected by Brad Haines (RenderMan) during his
+recent scans of the West Edmonton Mall in Alberta, Canada.
+
+You can read more about RenderMan's projects on his site:
+http://www.renderlab.net/
 
 --------------------------------------------------------------------------------
 - License                                                                      -
