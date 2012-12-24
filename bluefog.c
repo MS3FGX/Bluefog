@@ -30,7 +30,7 @@
 #define APPNAME "Bluefog"
 
 // Sane defaults
-#define MAX_THREADS	4
+#define MAX_THREADS 6
 #define THREAD_DELAY 1
 #define MAX_DELAY 300
 #define SHUTDOWN_WAIT 2

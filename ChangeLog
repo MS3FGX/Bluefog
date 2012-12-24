@@ -1,3 +1,6 @@
+12/23/12:
+	Raised maximum radio count to 6
+
 12/21/12: End Of The World Edition
 	MAC spoofing now works on Broadcom and CSR
 	Set default class when not randomized
