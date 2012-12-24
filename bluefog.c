@@ -295,9 +295,9 @@ static void help(void)
 	printf("\n");
 	printf("Options:\n"
 		"\t-i <interface>   Manually select device to use, default is automatic\n"
-		"\t-t <threads>     Set this to match how many Bluetooth adapters you have.\n"
-		"\t-n <name>        Sets a static device name instead of random.\n"
-		"\t-d <seconds>     How many seconds to wait between spoofs.\n"
+		"\t-t <threads>     Set this to match how many Bluetooth adapters you have\n"
+		"\t-n <name>        Sets a static device name instead of random\n"
+		"\t-d <seconds>     How many seconds to wait between spoofs, default 30\n"
 		"\t-m               Toggle randomization of MAC address, default is enabled\n"
 		"\t-c               Toggle randomization of class info, default disabled\n"
 		"\t-v               Toggle verbose messages, default disabled\n"
@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
 	
 	// Options
 	int numthreads = 1;
-	int delay = 20;
+	int delay = 30;
 	int change_addr = 1;
 	int change_class = 1;
 	int device = -1;	

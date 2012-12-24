@@ -92,7 +92,8 @@ parties.
 -d <seconds>
     This determines how many seconds to wait between device spoofs. The minimum
 value for this option is 5 seconds, but realistically, anything under 20
-probably won't work very well.
+probably won't work very well. Default is 30, which is rather slow but at least
+has a good shot at working.
 
 -m
     This option allows you to toggle the randomization of Bluetooth MAC
