@@ -675,7 +675,7 @@ char * device_name[] = {
 "mahalq0h",
 "Mando",
 "Manny",
-"Mariaâs iPhone",
+"Maria's iPhone",
 "MB Bluetooth",
 "McLane_DDH_MF4Te",
 "Mdgtto52",
