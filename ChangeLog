@@ -1,3 +1,7 @@
+12/28/12:
+	Minor fixes
+	Added basic groundwork for signal handler, needs work
+
 12/23/12:
 	Raised maximum radio count to 6
 

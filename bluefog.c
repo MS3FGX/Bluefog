@@ -8,14 +8,15 @@
  *  For more information, see: www.digifail.com
  */
 
+#include <time.h>
 #include <stdio.h>
 #include <errno.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
 #include <pthread.h>
-#include <time.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
@@ -38,6 +39,8 @@
 
 // Global variables
 int verbose = 0;
+int end_threads = 0;
+int c_count = 0;
 
 // Data to pass to threads
 struct thread_data
@@ -49,6 +52,19 @@ struct thread_data
 	int device;
 	int delay;
 };
+
+struct thread_data thread_data_array[MAX_THREADS];
+
+void shut_down(int sig)
+{
+	// Close up shop
+	printf("\n");
+	printf("Sending threads kill command\n");
+	//end_threads = 1;
+	printf("Count: %i\n", c_count);
+	c_count++;
+	//exit(sig);
+}
 
 char* get_localtime()
 {
@@ -125,10 +141,8 @@ char* random_addr (void)
 	return(addr);
 }
 
-struct thread_data thread_data_array[MAX_THREADS];
-
 void *thread_spoof(void *threadarg)
-{	
+{		
 	// Define variables from struct
 	int thread_id, change_addr, device, delay, change_class;
 	char *static_name;
@@ -182,7 +196,8 @@ void *thread_spoof(void *threadarg)
 	// Original MAC stored to addr_ref
 	ba2str(&bdaddr, addr_ref);
 	
-	for (;;)
+	printf("Threads: %i\n", end_threads);
+	while (end_threads != 1)
 	{				
 		// Attempt to change address first, since it probably requires reset
 		if (change_addr)
@@ -318,6 +333,12 @@ static struct option main_options[] = {
  
 int main(int argc, char *argv[])
 {
+	// Handle signals
+	signal(SIGINT,shut_down);
+	//signal(SIGHUP,shut_down);
+	//signal(SIGTERM,shut_down);
+	//signal(SIGQUIT,shut_down);
+	
 	// General variables
 	int t, opt;
 		

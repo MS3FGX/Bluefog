@@ -27,7 +27,7 @@ onto your devices, or otherwise complicate the normal operation of Bluetooth
 devices.
 
 Technically Bluefog can work with just one Bluetooth adapter, but it works much
-better when you connect up multiple adapters. Currently Bluefog can support 4
+better when you connect up multiple adapters. Currently Bluefog can support 6
 simultaneous Bluetooth radios, but that value may go up as I experiment with
 it some more.
 
@@ -80,7 +80,7 @@ available, so this option won't have any effect.
 perform. This number should match however many physical Bluetooth radios your
 computer currently has.
 
-The maximum number of threads is currently 4 (which obviously requires 4
+The maximum number of threads is currently 6 (which obviously requires 6
 separate Bluetooth adapters to be on the system), but may change in the future.
 
 -n <name>
