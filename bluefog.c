@@ -108,7 +108,7 @@ int write_class (int bt_socket, int device, char *class)
 // Select random name from list within range
 char* random_name (void)
 {	
-	return (device_name[((rand() % dev_max) + 1)] );	
+	return (device_name[((rand() % DEV_NAMES) + 1)]);	
 }
 
 // Generate random MAC address
@@ -196,7 +196,6 @@ void *thread_spoof(void *threadarg)
 	// Original MAC stored to addr_ref
 	ba2str(&bdaddr, addr_ref);
 	
-	printf("Threads: %i\n", end_threads);
 	while (end_threads != 1)
 	{				
 		// Attempt to change address first, since it probably requires reset
@@ -334,7 +333,7 @@ static struct option main_options[] = {
 int main(int argc, char *argv[])
 {
 	// Handle signals
-	signal(SIGINT,shut_down);
+	//signal(SIGINT,shut_down);
 	//signal(SIGHUP,shut_down);
 	//signal(SIGTERM,shut_down);
 	//signal(SIGQUIT,shut_down);
@@ -441,7 +440,7 @@ int main(int argc, char *argv[])
 		printf("Randomized\n");
 		
 		// Number of names loaded
-		printf("Available Names: %i\n", dev_max - 1);
+		printf("Available Names: %i\n", DEV_NAMES - 1);
 	}
 	else
 		printf("Static (%s)\n", static_name);
@@ -462,7 +461,7 @@ int main(int argc, char *argv[])
 
 	printf("Fogging started at [%s] on %i threads.\n", get_localtime(), numthreads);
 	printf("Hit Ctrl+C to end.\n");	
-
+	
 	for( t = 0; t < numthreads; t++ )
 	{
 		// Thread ID number
