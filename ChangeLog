@@ -1,6 +1,6 @@
 12/31/12:
 	Improvements to device name loading
-	Disable signal handler for a bit
+	Fix buffer overflow in device naming
 	Name list fixes
 
 12/28/12:

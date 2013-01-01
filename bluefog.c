@@ -108,7 +108,7 @@ int write_class (int bt_socket, int device, char *class)
 // Select random name from list within range
 char* random_name (void)
 {	
-	return (device_name[((rand() % DEV_NAMES) + 1)]);	
+	return (device_name[(rand() % DEV_NAMES)]);	
 }
 
 // Generate random MAC address
