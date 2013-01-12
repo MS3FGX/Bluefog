@@ -1,3 +1,6 @@
+01/11/12:
+	Implemented baby's first sigaction, threads sorta cleanly exit
+
 12/31/12:
 	Improvements to device name loading
 	Fix buffer overflow in device naming

@@ -55,14 +55,20 @@ struct thread_data
 
 struct thread_data thread_data_array[MAX_THREADS];
 
+void sig_catch(int sig)
+{
+	// Do something here someday
+}
+
 void shut_down(int sig)
 {
 	// Close up shop
-	printf("\n");
-	printf("Sending threads kill command\n");
+	//printf("\n");
+	//printf("Sending threads kill command\n");
+	fprintf(stdout, "Control+C\n");
 	//end_threads = 1;
-	printf("Count: %i\n", c_count);
-	c_count++;
+	//printf("Count: %i\n", c_count);
+	//c_count++;
 	//exit(sig);
 }
 
@@ -142,7 +148,7 @@ char* random_addr (void)
 }
 
 void *thread_spoof(void *threadarg)
-{		
+{			
 	// Define variables from struct
 	int thread_id, change_addr, device, delay, change_class;
 	char *static_name;
@@ -331,16 +337,10 @@ static struct option main_options[] = {
 };
  
 int main(int argc, char *argv[])
-{
-	// Handle signals
-	//signal(SIGINT,shut_down);
-	//signal(SIGHUP,shut_down);
-	//signal(SIGTERM,shut_down);
-	//signal(SIGQUIT,shut_down);
-	
+{		
 	// General variables
 	int t, opt;
-		
+	
 	// Thread ID
 	pthread_t threads[MAX_THREADS];
 		
@@ -480,19 +480,32 @@ int main(int argc, char *argv[])
 		thread_data_array[t].delay = delay;
 		
 		// Start thread
-		pthread_create(&threads[t], NULL, thread_spoof, (void *)
-			&thread_data_array[t]);
+		pthread_create(&threads[t], NULL, thread_spoof, (void *) &thread_data_array[t]);
 			
 		// Sleep for a second to stagger threads (needs experimentation)
 		if (numthreads > 1)
 			sleep (delay / numthreads);
 	}
 	
+	// Install handler after threads started, terrible hack
+	struct sigaction sig_handler;
+	sig_handler.sa_handler = sig_catch;
+	sigemptyset(&sig_handler.sa_mask);
+	sig_handler.sa_flags = 0;
+	sigaction(SIGINT, &sig_handler, NULL);
+			    
+    // Wait for Crtl+C
+    pause();
+    
+    // Tell threads to wrap it up
+    printf("\rTelling threads to shut down, this make take several seconds...\n");
+	end_threads = 1;
+
 	// Wait for threads to complete
 	for ( t = 0; t < numthreads; t++ )
 		pthread_join(threads[t], NULL);
 			
 	// Close up
-	printf("Done.\n");
+	printf("All threads done.\n");
 	exit(0);
 }
