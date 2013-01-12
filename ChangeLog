@@ -1,5 +1,6 @@
 01/11/12:
 	Implemented baby's first sigaction, threads sorta cleanly exit
+	Cleanups throughout
 
 12/31/12:
 	Improvements to device name loading

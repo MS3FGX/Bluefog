@@ -60,18 +60,6 @@ void sig_catch(int sig)
 	// Do something here someday
 }
 
-void shut_down(int sig)
-{
-	// Close up shop
-	//printf("\n");
-	//printf("Sending threads kill command\n");
-	fprintf(stdout, "Control+C\n");
-	//end_threads = 1;
-	//printf("Count: %i\n", c_count);
-	//c_count++;
-	//exit(sig);
-}
-
 char* get_localtime()
 {
 	// Time variables
@@ -96,7 +84,7 @@ int get_bt_socket (int device)
 	if (bt_socket < 0)
 	{
 		printf("Failed to initalize hci%i!\n", device);
-		exit(1); // TODO: Better shutdown
+		exit(1);
 	}
 	return(bt_socket);
 }
@@ -196,7 +184,7 @@ void *thread_spoof(void *threadarg)
 	if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
 	{
 			fprintf(stderr, "Can't read address for hci%d: %s (%d)\n", device, strerror(errno), errno);
-			hci_close_dev(bt_socket);
+			exit(1);
 	}
 	
 	// Original MAC stored to addr_ref
