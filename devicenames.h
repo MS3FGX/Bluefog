@@ -1,5 +1,5 @@
 // List of possible device names for Bluefog
-#define DEV_NAMES 1553 // 4 less than "wc -l devicenames.h"
+int dev_max = 1554; // 4 less than "wc -l devicenames.h"
 static char* device_name[] = {
 "Apple iPhone 3GS",
 "Apple iPhone 4",
@@ -122,6 +122,7 @@ static char* device_name[] = {
 "825.BankGirl !",
 "85076",
 "8D nickki ",
+"9",
 "a0-0",
 "A200",
 "A20000",
@@ -154,7 +155,7 @@ static char* device_name[] = {
 "ANP331",
 "apple's MacBook Pro",
 "Apple's Mac Pro",
-"apple's mouse",
+"appleâs mouse",
 "Apvd BlackBerry 9700",
 "ARCH3",
 "ARD TaskMaster",
@@ -365,7 +366,7 @@ static char* device_name[] = {
 "Daniel Gwernga",
 "dasha moses",
 "Dave's iPhone",
-"BlackBerry 9800",
+"dBlackBerry 9800",
 "DC171YG1",
 "*-deb:-)",
 "Debbie ",
