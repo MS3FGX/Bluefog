@@ -1,5 +1,5 @@
 // List of possible device names for Bluefog
-int dev_max = 1554; // 4 less than "wc -l devicenames.h"
+#define DEV_NAMES 1554 // 4 less than "wc -l devicenames.h"
 static char* device_name[] = {
 "Apple iPhone 3GS",
 "Apple iPhone 4",
