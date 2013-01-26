@@ -35,6 +35,8 @@
 #define THREAD_DELAY 1
 #define MAX_DELAY 300
 #define SHUTDOWN_WAIT 2
+#define MAX_LOITER 10
+#define LOITER_CHANCE 2
 #define DEFAULT_CLASS "0x5a020c"
 
 // Global variables
@@ -51,6 +53,7 @@ struct thread_data
 	char *static_name;
 	int device;
 	int delay;
+	int loiter;
 };
 
 struct thread_data thread_data_array[MAX_THREADS];
@@ -138,11 +141,14 @@ char* random_addr (void)
 void *thread_spoof(void *threadarg)
 {			
 	// Define variables from struct
-	int thread_id, change_addr, device, delay, change_class;
+	int thread_id, change_addr, device, delay, loiter, change_class;
 	char *static_name;
 	
 	// Local use variables
 	int bt_socket;
+	int first_run = 1;
+	int new_dev = 1;
+	int loiter_time = 0;
 
 	// Pull data out of struct
 	struct thread_data *local_data;
@@ -153,6 +159,7 @@ void *thread_spoof(void *threadarg)
 	delay = local_data->delay;
 	change_class = local_data->change_class;
 	static_name = local_data->static_name;
+	loiter = local_data->loiter;
 	
 	// MAC struct
 	bdaddr_t bdaddr;
@@ -192,90 +199,120 @@ void *thread_spoof(void *threadarg)
 	
 	while (end_threads != 1)
 	{				
-		// Attempt to change address first, since it probably requires reset
-		if (change_addr)
+		// Do we want to spoof a new device?
+		if (new_dev)
 		{
-			addr_buffer = random_addr();
-			if (cmd_bdaddr(device, bt_socket, addr_buffer) == 2)
+			// Attempt to change address first, since it probably requires reset
+			if (change_addr)
 			{
-				// This type of device needs to be manually restarted
-				hci_close_dev(bt_socket);
-				sleep(SHUTDOWN_WAIT);
-				bt_socket = get_bt_socket(device);
+				addr_buffer = random_addr();
+				if (cmd_bdaddr(device, bt_socket, addr_buffer) == 2)
+				{
+					// This type of device needs to be manually restarted
+					hci_close_dev(bt_socket);
+					sleep(SHUTDOWN_WAIT);
+					bt_socket = get_bt_socket(device);
+				}
 			}
-		}
-		
-		// Always change name
-		if (static_name != NULL)
-			name_buffer = static_name;
-		else
-			name_buffer = random_name();
-		
-		if (hci_write_local_name(bt_socket, name_buffer, 2000) < 0)
-			fprintf(stderr, "Can't change local name on hci%d: %s (%d)\n", device, strerror(errno), errno);
 			
-		// Change class
-		if (change_class)
-		{
-			// Generate a random class
-			int major = (rand() % 9);
-			int minor = (rand() % 6);
-	
-			// Randomly add service flags
-			int flag = 0;              
-			if (rand() % 2) flag += 1;
-			if (rand() % 2) flag += 2;
-			if (rand() % 2) flag += 4;
-			if (rand() % 2) flag += 8;
-			if (rand() % 2) flag += 10;
-			if (rand() % 2) flag += 20;
-			if (rand() % 2) flag += 40;
-			if (rand() % 2) flag += 80;
+			// Always change name
+			if (static_name != NULL)
+				name_buffer = static_name;
+			else
+				name_buffer = random_name();
+			
+			if (hci_write_local_name(bt_socket, name_buffer, 2000) < 0)
+				fprintf(stderr, "Can't change local name on hci%d: %s (%d)\n", device, strerror(errno), errno);
+				
+			// Change class
+			if (change_class)
+			{
+				// Generate a random class
+				int major = (rand() % 9);
+				int minor = (rand() % 6);
+		
+				// Randomly add service flags
+				int flag = 0;              
+				if (rand() % 2) flag += 1;
+				if (rand() % 2) flag += 2;
+				if (rand() % 2) flag += 4;
+				if (rand() % 2) flag += 8;
+				if (rand() % 2) flag += 10;
+				if (rand() % 2) flag += 20;
+				if (rand() % 2) flag += 40;
+				if (rand() % 2) flag += 80;
 
-			// Put class into string
-			sprintf(class, "0x%02x%02x%02x", flag, major, minor);		
-			write_class(bt_socket, device, class);
+				// Put class into string
+				sprintf(class, "0x%02x%02x%02x", flag, major, minor);		
+				write_class(bt_socket, device, class);
+			}
+			else
+			{
+				strcpy(class, DEFAULT_CLASS);		
+			}	write_class(bt_socket, device, class);
+
+			// Make discoverable
+			if (ioctl(bt_socket, HCISETSCAN, (unsigned long) &dr) < 0)
+			{
+				fprintf(stderr, "Can't set scan mode on hci%d: %s (%d)\n", device, strerror(errno), errno);
+				exit(1);
+			}
+
+			// Print device if verbose
+			if (verbose)
+				printf("hci%i - Name: %s Class: %s MAC: %s\n", device, name_buffer, class, addr_buffer);
 		}
-		else
-		{
-			strcpy(class, DEFAULT_CLASS);		
-		}	write_class(bt_socket, device, class);
-
-		// Make discoverable
-		if (ioctl(bt_socket, HCISETSCAN, (unsigned long) &dr) < 0)
-		{
-			fprintf(stderr, "Can't set scan mode on hci%d: %s (%d)\n", device, strerror(errno), errno);
-			exit(1);
-		}
-
-		// Print device if verbose
-		if (verbose)
-			printf("hci%i - Name: %s Class: %s MAC: %s\n", device, name_buffer, class, addr_buffer);
 		
 		// Wait
 		sleep(delay);
 							
-		// Verify MAC actually changed
-		if (!bacmp(&di.bdaddr, BDADDR_ANY))
+		// Only check this once, to save time later
+		if (first_run)
 		{
-			if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
+			// Verify MAC actually changed
+			if (!bacmp(&di.bdaddr, BDADDR_ANY))
 			{
-				fprintf(stderr, "Can't read address for hci%d: %s (%d)\n", device, strerror(errno), errno);
-				exit(1);
+				if (hci_read_bd_addr(bt_socket, &bdaddr, 1000) < 0)
+				{
+					fprintf(stderr, "Can't read address for hci%d: %s (%d)\n", device, strerror(errno), errno);
+					exit(1);
+				}
 			}
-		}
-		else
-			bacpy(&bdaddr, &di.bdaddr);	
+			else
+				bacpy(&bdaddr, &di.bdaddr);	
 
-		// Test MAC to addr_buff
-		ba2str(&bdaddr, addr_buff);	
+			// Test MAC to addr_buff
+			ba2str(&bdaddr, addr_buff);	
+				
+			if ((strcmp (addr_ref, addr_buff) == 0))
+			{
+				printf("MAC on interface hci%i is not changing. Hardware is likely not compatible.\n", device);
+				printf("Disabling MAC changing for this interface. See README for more info.\n");
+				change_addr = 0;
+			}
 			
-		if ((strcmp (addr_ref, addr_buff) == 0))
-		{
-			printf("MAC on interface hci%i is not changing. Hardware is likely not compatible.\n", device);
-			printf("Disabling MAC changing for this interface. See README for more info.\n");
-			change_addr = 0;
+			// Don't do this again
+			first_run = 0;
 		}
+		
+		// Determine if we will loiter a bit
+		if (loiter)
+		{
+			if (loiter_time == 0)
+			{
+				// Not currently loitering, should we?
+				if ((rand() % MAX_LOITER) > (MAX_LOITER / LOITER_CHANCE))
+				{
+					// How long to wait
+					loiter_time = (rand() % MAX_LOITER);
+					new_dev = 0;
+				}
+				else
+					new_dev = 1;
+			}
+			else if (loiter_time >= 1)
+				loiter_time--;
+		}		
 	}
 	
 	// Close device
@@ -306,6 +343,7 @@ static void help(void)
 		"\t-t <threads>     Set this to match how many Bluetooth adapters you have\n"
 		"\t-n <name>        Sets a static device name instead of random\n"
 		"\t-d <seconds>     How many seconds to wait between spoofs, default 30\n"
+		"\t-l               Loiter, simulates slow moving or stationary devices\n"
 		"\t-m               Toggle randomization of MAC address, default is enabled\n"
 		"\t-c               Toggle randomization of class info, default disabled\n"
 		"\t-v               Toggle verbose messages, default disabled\n"
@@ -318,6 +356,7 @@ static struct option main_options[] = {
 	{ "name", 1, 0, 'n' },
 	{ "delay", 1, 0, 'd' },
 	{ "class", 1, 0, 'c' },
+	{ "loiter", 0, 0, 'l' },	
 	{ "mac", 0, 0, 'm' },
 	{ "verbose", 0, 0, 'v' },
 	{ "help", 0, 0, 'h' },
@@ -342,11 +381,12 @@ int main(int argc, char *argv[])
 	int delay = 30;
 	int change_addr = 1;
 	int change_class = 1;
-	int device = -1;	
+	int device = -1;
+	int loiter = 0;	
 	char *static_name = NULL;
 
 	// Process options
-	while ((opt=getopt_long(argc, argv, "+t:d:i:n:mchv", main_options, NULL)) != EOF)
+	while ((opt=getopt_long(argc, argv, "+t:d:i:n:mchlv", main_options, NULL)) != EOF)
 	{
 		switch (opt)
 		{
@@ -372,6 +412,9 @@ int main(int argc, char *argv[])
 				exit(1);
 			}
 			break;			
+		case 'l':
+			loiter = 1;
+		break;
 		case 'c':
 			change_class = 1;
 			break;
@@ -466,6 +509,7 @@ int main(int argc, char *argv[])
 		thread_data_array[t].change_class = change_class;
 		thread_data_array[t].static_name = static_name;
 		thread_data_array[t].delay = delay;
+		thread_data_array[t].loiter = loiter;
 		
 		// Start thread
 		pthread_create(&threads[t], NULL, thread_spoof, (void *) &thread_data_array[t]);

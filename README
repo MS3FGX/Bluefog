@@ -95,6 +95,12 @@ value for this option is 5 seconds, but realistically, anything under 20
 probably won't work very well. Default is 30, which is rather slow but at least
 has a good shot at working.
 
+-l
+    This enables "Loiter Mode", which will randomly slow down the spoofing of
+devices. This is used to simulate slow moving targets, rather than a constant
+stream. This mode will create a more realistic flow of phantom devices, closer
+to what you would expect during real Bluetooth monitoring.
+
 -m
     This option allows you to toggle the randomization of Bluetooth MAC
 addresses by Bluefog. Realistically, there isn't much point in randomizing
