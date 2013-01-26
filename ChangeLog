@@ -1,4 +1,5 @@
 01/26/13:
+	Only verify changed MAC on first spoof
 	Added Loiter mode
 	Updated docs
 
