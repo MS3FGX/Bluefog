@@ -116,11 +116,6 @@ char* random_addr (void)
 	static char addr[18] = {0};
 	int i = 0;
 	
-	// Start off the MAC with 00:
-	addr[i++] = '0';
-	addr[i++] = '0';
-	addr[i++] = ':';
-	
 	// Fill in the middle
 	while ( i < 14)
 	{

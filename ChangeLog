@@ -1,7 +1,11 @@
+02/09/13: Released as Version 0.0.4
+	Improved generation of random MAC
+	Updated README
+
 01/26/13:
 	Only verify changed MAC on first spoof
 	Added Loiter mode
-	Updated docs
+	Updated README
 
 01/13/13: Released as Version 0.0.3
 	Fixed mistake I made in merging device name files

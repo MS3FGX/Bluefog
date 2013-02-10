@@ -1,6 +1,6 @@
 # App info
 APPNAME = bluefog
-VERSION = 0.0.3
+VERSION = 0.0.4
 
 # Compiler and options
 CC = gcc

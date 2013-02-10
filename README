@@ -3,33 +3,31 @@
 =                       Tom Nardi (MS3FGX@gmail.com)                           =
 ================================================================================
 
-WARNING! WARNING! WARNING!
------------------------------
-Bluefog is in the VERY early stages of development, I cannot guarantee that it
-is completely safe to use, and there are absolutely some areas of the software
-which need attention and improvement. There is currently very little in the way
-of error checking, and I can't promise it will always behave (especially if it
-encounters hardware which I haven't been able to test with yet).
-
-It's also possible that Bluefog will wipe your Bluetooth adapter's real MAC
-addresses. While the changes Bluefog makes are supposed to be temporary, I
-managed to permanently delete the address on my laptop's internal hardware, so
-keep it in mind.
-
-If you get Bluefog up and running or have any questions/comments, please let me
-know.
------------------------------
-
-Assuming it actually works for you, Bluefog is able to generate an essentially
-unlimited number of phantom Bluetooth devices. It can be used to test Bluetooth
-scanning and monitoring systems, make it more difficult for attackers to lock
-onto your devices, or otherwise complicate the normal operation of Bluetooth
-devices.
+Bluefog is able to generate an essentially unlimited number of phantom
+Bluetooth devices, useful for testing Bluetooth scanning and monitoring
+systems, making it more difficult for attackers to lock onto your devices, or
+otherwise complicate the normal operation of Bluetooth devices.
 
 Technically Bluefog can work with just one Bluetooth adapter, but it works much
 better when you connect up multiple adapters. Currently Bluefog can support 6
 simultaneous Bluetooth radios, but that value may go up as I experiment with
 it some more.
+
+--------------------------------------------------------------------------------
+- WARNINGS                                                                     -
+--------------------------------------------------------------------------------
+
+The changes Bluelog makes to your Bluetooth hardware is supposed to be
+temporary, but not all Bluetooth chipsets behave appropriately. During the
+development of Bluefog, I managed to permanently delete the MAC address of
+my laptop's internal radio. This isn't that big of a deal, but you may want to
+keep it in mind.
+
+In addition, I have occasionally found BlueZ to lock up after running Bluefog
+with large numbers of Bluetooth radios (4 or more), and indeed, BlueZ in
+general doesn't seem to work reliably with multiple radios. If BlueZ starts to
+behave oddly after running Bluefog, just reboot and everything should be back
+to normal.
 
 --------------------------------------------------------------------------------
 - Compatibility                                                                -
