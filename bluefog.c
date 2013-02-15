@@ -27,7 +27,7 @@
 // MAC changing functions
 #include "bdaddr.c"
 
-#define VERSION	"0.0.3"
+#define VERSION	"0.0.4"
 #define APPNAME "Bluefog"
 
 // Sane defaults
