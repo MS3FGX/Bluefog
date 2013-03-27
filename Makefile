@@ -10,7 +10,7 @@ CFLAGS += -Wall -O2 -Wno-unused-function
 LIBS = -lbluetooth -lpthread
 
 # Files
-SOURCES = bluefog.c bdaddr.c oui.c devicenames.h
+SOURCES = bluefog.c bdaddr.c devicenames.h
 DOCS = ChangeLog COPYING README
 
 # Targets

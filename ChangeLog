@@ -1,3 +1,6 @@
+03/26/13:
+	Removed unused oui.c code
+
 02/09/13: Released as Version 0.0.4
 	Improved generation of random MAC
 	Updated README

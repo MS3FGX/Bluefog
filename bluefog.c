@@ -525,9 +525,9 @@ int main(int argc, char *argv[])
     pause();
     
     // Tell threads to wrap it up
-    printf("\rTelling threads to shut down, this make take several seconds...\n");
+	printf("\rTelling threads to shut down, this make take several seconds...\n");
 	end_threads = 1;
-
+	
 	// Wait for threads to complete
 	for ( t = 0; t < numthreads; t++ )
 		pthread_join(threads[t], NULL);

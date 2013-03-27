@@ -23,8 +23,6 @@
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
 
-#include "oui.h"
-
 static int transient = 1;
 
 static int generic_reset_device(int dd)
