@@ -362,7 +362,7 @@ static char* device_name[] = {
 "Dad",
 "Daddys Little Girl",
 "Dad's Phone",
-"Danica Doucette-Previlleâs iPad",
+"Danica Doucette-Preville's iPad",
 "Daniel Gwernga",
 "dasha moses",
 "Dave's iPhone",

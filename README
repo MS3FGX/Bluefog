@@ -17,7 +17,7 @@ it some more.
 - WARNINGS                                                                     -
 --------------------------------------------------------------------------------
 
-The changes Bluelog makes to your Bluetooth hardware is supposed to be
+The changes Bluefog makes to your Bluetooth hardware is supposed to be
 temporary, but not all Bluetooth chipsets behave appropriately. During the
 development of Bluefog, I managed to permanently delete the MAC address of
 my laptop's internal radio. This isn't that big of a deal, but you may want to
@@ -130,8 +130,7 @@ You can read more about JP Dunning's projects on his site:
 http://www.hackfromacave.com/
 
 Bluefog uses quite a bit of code from the "BlueZ" project by Marcel Holtmann,
-most notably the majority of bdaddr.c, oui.c, and oui.h, plus some functions
-from hciconfig.c.
+most notably the majority of bdaddr.c, plus some functions from hciconfig.c.
 
 For more information, check out the official BlueZ site:
 http://www.bluez.org/
